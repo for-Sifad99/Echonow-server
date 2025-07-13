@@ -16,6 +16,7 @@ Welcome to the **EchoNow Backend** — the server-side of a powerful full-stack 
 ## 🔗 Project Links
 
 - 🌐 **Frontend Live Site:** [https://echonow-client.web.app](https://echonow-client.web.app)
+- 🌐 **Backend Live Site:** [https://echonow-server.vercel.app/](https://echonow-server.vercel.app/)
 - 💻 **Client GitHub Repository:** [https://github.com/Programming-Hero-Web-Course4/b11a12-client-side-for-Sifad99.git](https://github.com/Programming-Hero-Web-Course4/b11a12-client-side-for-Sifad99.git)
 - ⚙️ **Server GitHub Repository:** [https://github.com/Programming-Hero-Web-Course4/b11a12-server-side-for-Sifad99.git](https://github.com/Programming-Hero-Web-Course4/b11a12-server-side-for-Sifad99.git)
 
@@ -115,7 +116,7 @@ CLOUDINARY_API_KEY=your_cloudinary_api_key
 CLOUDINARY_SECRET=your_cloudinary_secret
 
 1. Clone the repository
-git clone https://github.com/your-username/echonow-server.git
+git clone https://github.com/Programming-Hero-Web-Course4/b11a12-server-side-for-Sifad99.git
 cd echonow-server
 
 2. Install dependencies
