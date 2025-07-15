@@ -67,6 +67,7 @@ async function run() {
         const articlesCollection = client.db('articlesDB').collection('articles');
         const usersCollection = client.db('articlesDB').collection('users');
 
+        // POST /users
         app.post("/users", async (req, res) => {
             try {
                 const userProfile = req.body;
@@ -77,7 +78,7 @@ async function run() {
                 const existingUser = await usersCollection.findOne({ email });
 
                 if (existingUser) {
-                    // ✅ Check if premium expired
+                    // Check if premium expired
                     const now = new Date();
                     const expiry = existingUser.premiumExpiresAt;
 
@@ -112,7 +113,7 @@ async function run() {
                     return res.status(200).json({ message: "User updated" });
                 }
 
-                // ✅ New user insert
+                // New user insert
                 await usersCollection.insertOne({
                     ...userProfile,
                     isPremium: false,
@@ -125,6 +126,23 @@ async function run() {
                 res.status(201).json({ message: "User created" });
             } catch (error) {
                 console.error("❌ Error in /users route:", error);
+                res.status(500).json({ message: "Server error" });
+            }
+        });
+
+        // GET /users/:email
+        app.get('/users/:email', async (req, res) => {
+            try {
+                const email = req.params.email;
+                const user = await usersCollection.findOne({ email });
+
+                if (!user) {
+                    return res.status(404).json({ message: "User not found" });
+                }
+
+                res.status(200).json(user);
+            } catch (error) {
+                console.error("❌ Error fetching user:", error);
                 res.status(500).json({ message: "Server error" });
             }
         });
@@ -203,6 +221,31 @@ async function run() {
             }
         });
 
+        // GET /articles/premium
+        app.get('/articles/premium', verifyFbToken, async (req, res) => {
+            try {
+                const page = parseInt(req.query.page) || 1;
+                const limit = parseInt(req.query.limit) || 6;
+                const skip = (page - 1) * limit;
+
+                const query = { isPremium: true };
+                const total = await articlesCollection.countDocuments(query);
+                const articles = await articlesCollection
+                    .find(query)
+                    .skip(skip)
+                    .limit(limit)
+                    .toArray();
+
+                res.send({
+                    articles,
+                    totalPages: Math.ceil(total / limit),
+                });
+            } catch (err) {
+                console.error('❌ Error fetching premium articles:', err);
+                res.status(500).send({ error: 'Failed to load premium articles' });
+            }
+        });
+
         app.get('/article/:id', verifyFbToken, async (req, res) => {
             try {
                 const id = req.params.id;
@@ -240,13 +283,14 @@ async function run() {
             }
         });
 
+        // POST /create-payment-intent
         app.post('/create-payment-intent', async (req, res) => {
             const { cost } = req.body;
             console.log('🧾 Creating payment intent for:', cost);
 
             if (!cost) {
                 return res.status(400).json({ error: 'Cost is required' });
-            }
+            };
 
             try {
                 const amount = parseInt(cost * 100);
@@ -261,7 +305,7 @@ async function run() {
             } catch (error) {
                 console.error('❌ Stripe error:', error);
                 res.status(500).json({ error: error.message });
-            }
+            };
         });
 
         // Send a ping to confirm a successful connection
