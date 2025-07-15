@@ -3,6 +3,7 @@ const cors = require('cors');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config();
 const admin = require("firebase-admin");
+const stripe = require('stripe')(process.env.PAYMENT_GETWAY_KEY);
 
 
 // Firebase Service Token Process
@@ -25,12 +26,12 @@ admin.initializeApp({
 const verifyFbToken = async (req, res, next) => {
     const authHeader = req.headers?.authorization;
     console.log("Auth Header:", authHeader);
-    const token = authHeader.split(' ')[1]; 
+    const token = authHeader.split(' ')[1];
 
     if (!authHeader || !authHeader.startsWith('Bearer ') || !token) {
         return res.status(401).send({ message: 'Unauthorized access!!' })
     }
-   
+
     try {
         const decoded = await admin.auth().verifyIdToken(token);
         req.decoded = decoded;
@@ -66,35 +67,70 @@ async function run() {
         const articlesCollection = client.db('articlesDB').collection('articles');
         const usersCollection = client.db('articlesDB').collection('users');
 
-        // POST /users
         app.post("/users", async (req, res) => {
             try {
                 const userProfile = req.body;
+                const { email, premiumTaken, duration } = userProfile;
 
-                // Check if user already exists
-                const existingUser = await usersCollection.findOne({ email: userProfile.email });
+                if (!email) return res.status(400).json({ message: "Email is required" });
+
+                const existingUser = await usersCollection.findOne({ email });
 
                 if (existingUser) {
-                    return res.status(200).json({ message: "User already exists", user: existingUser });
+                    // ✅ Check if premium expired
+                    const now = new Date();
+                    const expiry = existingUser.premiumExpiresAt;
+
+                    const isExpired = expiry && new Date(expiry) < now;
+
+                    const updateFields = {
+                        updatedAt: now,
+                        ...(isExpired
+                            ? { isPremium: false, premiumTaken: null, premiumExpiresAt: null }
+                            : {}),
+                        ...(premiumTaken && duration
+                            ? (() => {
+                                const durationMap = {
+                                    "1 minute": 1,
+                                    "5 days": 5 * 24 * 60,
+                                    "10 days": 10 * 24 * 60,
+                                };
+                                const expiryMinutes = durationMap[duration] || 0;
+                                const takenTime = new Date(premiumTaken);
+                                const expiresAt = new Date(takenTime.getTime() + expiryMinutes * 60000);
+
+                                return {
+                                    premiumTaken: takenTime,
+                                    premiumExpiresAt: expiresAt,
+                                    isPremium: true,
+                                };
+                            })()
+                            : {}),
+                    };
+
+                    await usersCollection.updateOne({ email }, { $set: updateFields });
+                    return res.status(200).json({ message: "User updated" });
                 }
 
-                // If user not found, insert new
+                // ✅ New user insert
                 await usersCollection.insertOne({
                     ...userProfile,
+                    isPremium: false,
+                    premiumTaken: null,
+                    premiumExpiresAt: null,
                     createdAt: new Date(),
                     updatedAt: new Date(),
                 });
 
-                res.status(201).json({ message: "User created"});
+                res.status(201).json({ message: "User created" });
             } catch (error) {
-                console.error("Error creating/updating user:", error);
+                console.error("❌ Error in /users route:", error);
                 res.status(500).json({ message: "Server error" });
             }
         });
 
-         // POST /article
+        // POST /article
         app.post("/article", verifyFbToken, async (req, res) => {
-
             try {
                 const article = req.body;
 
@@ -107,7 +143,7 @@ async function run() {
                     email: article.authorEmail,
                 });
 
-                if (user?.role !== "premium" && existing) {
+                if (user?.isPremium == false && existing) {
                     return res.status(403).send({ message: "Normal user can only post one article" });
                 }
 
@@ -125,7 +161,7 @@ async function run() {
                 const { search = '', publisher = '', tags = '', page = 1, limit = 6 } = req.query;
 
                 const query = {
-                    status: 'approved' // ✅ Only show approved articles
+                    status: 'approved', // Only fetch approved articles
                 };
 
                 // Search by title
@@ -167,7 +203,7 @@ async function run() {
             }
         });
 
-        app.get('/article/:id', async (req, res) => {
+        app.get('/article/:id', verifyFbToken, async (req, res) => {
             try {
                 const id = req.params.id;
 
@@ -184,7 +220,7 @@ async function run() {
             }
         });
 
-        app.patch('/article/:id/views', async (req, res) => {
+        app.patch('/article/:id/views', verifyFbToken, async (req, res) => {
             try {
                 const id = req.params.id;
 
@@ -194,7 +230,7 @@ async function run() {
                 );
 
                 if (result.modifiedCount === 1) {
-                    res.send({ message: "View count updated", viewCount: articleAfter.viewCount });
+                    res.send({ message: "View count updated", viewCount: result.viewCount });
                 } else {
                     res.status(404).send({ message: "Article not found" });
                 }
@@ -203,7 +239,31 @@ async function run() {
                 res.status(500).send({ message: "Failed to update view count" });
             }
         });
-        
+
+        app.post('/create-payment-intent', async (req, res) => {
+            const { cost } = req.body;
+            console.log('🧾 Creating payment intent for:', cost);
+
+            if (!cost) {
+                return res.status(400).json({ error: 'Cost is required' });
+            }
+
+            try {
+                const amount = parseInt(cost * 100);
+
+                const paymentIntent = await stripe.paymentIntents.create({
+                    amount,
+                    currency: 'usd',
+                    payment_method_types: ['card'],
+                });
+
+                res.send({ clientSecret: paymentIntent.client_secret });
+            } catch (error) {
+                console.error('❌ Stripe error:', error);
+                res.status(500).json({ error: error.message });
+            }
+        });
+
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
         console.log("✅ Connected to MongoDB!");
