@@ -71,7 +71,7 @@ async function run() {
         app.post("/users", async (req, res) => {
             try {
                 const userProfile = req.body;
-                const { email, premiumTaken, duration } = userProfile;
+                const { name, photo, email, premiumTaken, duration } = userProfile;
 
                 if (!email) return res.status(400).json({ message: "Email is required" });
 
@@ -116,6 +116,7 @@ async function run() {
                 // New user insert
                 await usersCollection.insertOne({
                     ...userProfile,
+                    name, email, photo,
                     isPremium: false,
                     premiumTaken: null,
                     premiumExpiresAt: null,
@@ -146,6 +147,22 @@ async function run() {
                 res.status(500).json({ message: "Server error" });
             }
         });
+
+        // PATCH /users/:email
+        app.patch("/users/:email", async (req, res) => {
+            const email = req.params.email;
+            const updatedFields = req.body;
+
+            const result = await usersCollection.updateOne(
+                { email },
+                { $set: { ...updatedFields, updatedAt: new Date() } }
+            );
+
+            res.status(200).json(result);
+        });
+
+
+
 
         // POST /article
         app.post("/article", verifyFbToken, async (req, res) => {
@@ -221,6 +238,13 @@ async function run() {
             }
         });
 
+        // GET /articles
+        app.get('/articles/user', async (req, res) => {
+            const { email } = req.query;
+            const userArticles = await articlesCollection.find({ authorEmail: email }).toArray();
+            res.send(userArticles);
+        });
+
         // GET /articles/premium
         app.get('/articles/premium', verifyFbToken, async (req, res) => {
             try {
@@ -283,8 +307,39 @@ async function run() {
             }
         });
 
+        // PATCH /article
+        app.patch('/articles/:id', verifyFbToken, async (req, res) => {
+            const { id } = req.params;
+            const updatedArticle = req.body;
+
+            try {
+                const result = await articlesCollection.updateOne(
+                    { _id: new ObjectId(id) },
+                    { $set: updatedArticle }
+                );
+                res.status(200).json({ message: 'Article updated successfully', result });
+            } catch (err) {
+                console.error('❌ Update error:', err);
+                res.status(500).json({ message: 'Failed to update article' });
+            }
+        });
+
+
+        // DELETE /article
+        app.delete('/articles/:id', verifyFbToken, async (req, res) => {
+            const { id } = req.params;
+
+            try {
+                const result = await articlesCollection.deleteOne({ _id: new ObjectId(id) });
+                res.status(200).json({ message: 'Article deleted successfully', result });
+            } catch (err) {
+                console.error('❌ Delete error:', err);
+                res.status(500).json({ message: 'Failed to delete article' });
+            }
+        });
+
         // POST /create-payment-intent
-        app.post('/create-payment-intent', async (req, res) => {
+        app.post('/create-payment-intent', verifyFbToken, async (req, res) => {
             const { cost } = req.body;
             console.log('🧾 Creating payment intent for:', cost);
 
