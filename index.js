@@ -92,9 +92,9 @@ async function run() {
                         ...(premiumTaken && duration
                             ? (() => {
                                 const durationMap = {
-                                    "1 minute": 1,
-                                    "5 days": 5 * 24 * 60,
-                                    "10 days": 10 * 24 * 60,
+                                    "1": 1,
+                                    "5": 5 * 24 * 60,
+                                    "10": 10 * 24 * 60,
                                 };
                                 const expiryMinutes = durationMap[duration] || 0;
                                 const takenTime = new Date(premiumTaken);
@@ -148,6 +148,18 @@ async function run() {
             }
         });
 
+        // GET /users-count
+        app.get('/users-count', verifyFbToken, async (req, res) => {
+            try {
+                const totalUsers = await usersCollection.countDocuments();
+                const premiumUsers = await usersCollection.countDocuments({ isPremium: true });
+                res.send({ totalUsers, premiumUsers });
+            } catch (error) {
+                console.error("Error getting users count:", error);
+                res.status(500).send({ message: "Failed to fetch user stats" });
+            }
+        });
+
         // PATCH /users/:email
         app.patch("/users/:email", async (req, res) => {
             const email = req.params.email;
@@ -160,9 +172,6 @@ async function run() {
 
             res.status(200).json(result);
         });
-
-
-
 
         // POST /article
         app.post("/article", verifyFbToken, async (req, res) => {
@@ -196,32 +205,28 @@ async function run() {
                 const { search = '', publisher = '', tags = '', page = 1, limit = 6 } = req.query;
 
                 const query = {
-                    status: 'approved', // Only fetch approved articles
+                    status: 'approved', 
                 };
 
-                // Search by title
                 if (search) {
                     query.title = { $regex: search, $options: 'i' };
                 }
 
-                // Filter by publisher
                 if (publisher) {
                     query.publisher = publisher;
                 }
 
-                // Filter by tags (can be multiple comma-separated tags)
                 if (tags) {
                     const tagArray = tags.split(',');
                     query.tags = { $in: tagArray };
                 }
 
                 const skip = (parseInt(page) - 1) * parseInt(limit);
-
                 const articles = await articlesCollection.find(query)
-                    .sort({ createdAt: -1 }) // latest first
+                    .sort({ createdAt: -1 }) 
                     .skip(skip)
                     .limit(parseInt(limit))
-                    .toArray(); // Don't forget this for native driver
+                    .toArray(); 
 
                 const total = await articlesCollection.countDocuments(query);
 
@@ -238,7 +243,7 @@ async function run() {
             }
         });
 
-        // GET /articles
+        // GET /articles/user
         app.get('/articles/user', async (req, res) => {
             const { email } = req.query;
             const userArticles = await articlesCollection.find({ authorEmail: email }).toArray();
@@ -270,6 +275,18 @@ async function run() {
             }
         });
 
+        // GET /articles-count
+        app.get('/articles-count', async (req, res) => {
+            try {
+                const total = await articlesCollection.countDocuments({ status: 'approved' });
+                res.send({ total });
+            } catch (error) {
+                console.error("Error getting article count:", error);
+                res.status(500).send({ message: "Failed to fetch total article count" });
+            }
+        });
+
+        // GET /articles/:id
         app.get('/article/:id', verifyFbToken, async (req, res) => {
             try {
                 const id = req.params.id;
@@ -287,6 +304,7 @@ async function run() {
             }
         });
 
+        // GET /article/:id/views
         app.patch('/article/:id/views', verifyFbToken, async (req, res) => {
             try {
                 const id = req.params.id;
@@ -307,6 +325,24 @@ async function run() {
             }
         });
 
+        // GET /articles/tending
+        app.get('/articles/trending', async (req, res) => {
+            try {
+                const trendingArticles = await articlesCollection
+                    .find({
+                        status: 'approved', type
+                            : 'tending'
+                    })
+                    .sort({ postedDate: -1 }) // Sort by latest
+                    .limit(4)
+                    .toArray();
+
+                res.send(trendingArticles);
+            } catch (error) {
+                res.status(500).send({ message: 'Failed to fetch trending articles', error });
+            }
+        });
+
         // PATCH /article
         app.patch('/articles/:id', verifyFbToken, async (req, res) => {
             const { id } = req.params;
@@ -323,7 +359,6 @@ async function run() {
                 res.status(500).json({ message: 'Failed to update article' });
             }
         });
-
 
         // DELETE /article
         app.delete('/articles/:id', verifyFbToken, async (req, res) => {
