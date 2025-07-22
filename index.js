@@ -25,7 +25,6 @@ admin.initializeApp({
 // Verify Firebase Token
 const verifyFbToken = async (req, res, next) => {
     const authHeader = req.headers?.authorization;
-    console.log("Auth Header:", authHeader);
     const token = authHeader.split(' ')[1];
 
     if (!authHeader || !authHeader.startsWith('Bearer ') || !token) {
@@ -148,15 +147,21 @@ async function run() {
             }
         });
 
-        // GET /users-count
-        app.get('/users-count', verifyFbToken, async (req, res) => {
+        // GET /all-users
+        app.get('/all-users', verifyFbToken, async (req, res) => {
             try {
                 const totalUsers = await usersCollection.countDocuments();
                 const premiumUsers = await usersCollection.countDocuments({ isPremium: true });
-                res.send({ totalUsers, premiumUsers });
+                const allUsers = await usersCollection.find().toArray();
+
+                res.send({
+                    totalUsers,
+                    premiumUsers,
+                    allUsers,
+                });
             } catch (error) {
-                console.error("Error getting users count:", error);
-                res.status(500).send({ message: "Failed to fetch user stats" });
+                console.error("Error getting all users:", error);
+                res.status(500).send({ message: "Failed to fetch all users" });
             }
         });
 
@@ -171,6 +176,33 @@ async function run() {
             );
 
             res.status(200).json(result);
+        });
+
+        // PATCH /users/admin:email
+        app.patch('/users/admin/:email', async (req, res) => {
+            const email = req.params.email;
+            const filter = { email };
+            const updateDoc = { $set: { role: 'admin' } };
+            const result = await usersCollection.updateOne(filter, updateDoc);
+            res.send(result);
+        });
+
+        // DELETE /users/:email
+        app.delete("/users/:email", async (req, res) => {
+            const email = req.params.email;
+
+            try {
+                const result = await usersCollection.deleteOne({ email: email });
+
+                if (result.deletedCount === 0) {
+                    return res.status(404).json({ message: "User not found" });
+                }
+
+                res.json({ message: "User deleted successfully" });
+            } catch (error) {
+                console.error("Delete user error:", error);
+                res.status(500).json({ message: "Server error" });
+            }
         });
 
         // POST /article
@@ -205,7 +237,7 @@ async function run() {
                 const { search = '', publisher = '', tags = '', page = 1, limit = 6 } = req.query;
 
                 const query = {
-                    status: 'approved', 
+                    status: 'approved',
                 };
 
                 if (search) {
@@ -223,10 +255,10 @@ async function run() {
 
                 const skip = (parseInt(page) - 1) * parseInt(limit);
                 const articles = await articlesCollection.find(query)
-                    .sort({ createdAt: -1 }) 
+                    .sort({ createdAt: -1 })
                     .skip(skip)
                     .limit(parseInt(limit))
-                    .toArray(); 
+                    .toArray();
 
                 const total = await articlesCollection.countDocuments(query);
 
