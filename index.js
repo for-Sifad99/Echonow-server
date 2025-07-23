@@ -62,10 +62,13 @@ async function run() {
         // Connect the client to the server	(optional starting in v4.7)
         await client.connect();
 
-        // Create ArticlesCollection:
+        // CollectionS:
         const articlesCollection = client.db('articlesDB').collection('articles');
         const usersCollection = client.db('articlesDB').collection('users');
+        const publishersCollection = client.db('articlesDB').collection('publishers');
 
+
+        // USERS RELATED APIS
         // POST /users
         app.post("/users", async (req, res) => {
             try {
@@ -148,7 +151,7 @@ async function run() {
         });
 
         // GET /all-users
-        app.get('/all-users', verifyFbToken, async (req, res) => {
+        app.get('/all-users', async (req, res) => {
             try {
                 const totalUsers = await usersCollection.countDocuments();
                 const premiumUsers = await usersCollection.countDocuments({ isPremium: true });
@@ -205,6 +208,7 @@ async function run() {
             }
         });
 
+        // ARTICLES RELATED APIS
         // POST /article
         app.post("/article", verifyFbToken, async (req, res) => {
             try {
@@ -307,14 +311,25 @@ async function run() {
             }
         });
 
-        // GET /articles-count
-        app.get('/articles-count', async (req, res) => {
+        // GET /all-articles
+        app.get('/all-articles', async (req, res) => {
             try {
                 const total = await articlesCollection.countDocuments({ status: 'approved' });
-                res.send({ total });
+
+                // fetch all articles
+                const articles = await articlesCollection.find().toArray();
+
+                // Custom sort by status
+                const statusOrder = { pending: 1, approved: 2, declined: 3 };
+
+                const sortedArticles = articles.sort((a, b) => {
+                    return statusOrder[a.status] - statusOrder[b.status];
+                });
+
+                res.send({ total, allArticles: sortedArticles });
             } catch (error) {
-                console.error("Error getting article count:", error);
-                res.status(500).send({ message: "Failed to fetch total article count" });
+                console.error("Error:", error);
+                res.status(500).send({ message: "Failed to fetch" });
             }
         });
 
@@ -385,10 +400,10 @@ async function run() {
                     { _id: new ObjectId(id) },
                     { $set: updatedArticle }
                 );
-                res.status(200).json({ message: 'Article updated successfully', result });
+                res.status(200).send({ message: 'Article updated successfully', result });
             } catch (err) {
                 console.error('❌ Update error:', err);
-                res.status(500).json({ message: 'Failed to update article' });
+                res.status(500).send({ message: 'Failed to update article' });
             }
         });
 
@@ -405,6 +420,68 @@ async function run() {
             }
         });
 
+        // PUBLISHERS RELATED APIS
+        // GET /publisher-stats
+        app.get('/publication-stats', async (req, res) => {
+            try {
+                const publishers = await publishersCollection.find().toArray();
+
+                const publications = [];
+
+                for (const publisher of publishers) {
+                    const count = await articlesCollection.countDocuments({
+                        publisher: publisher.name,
+                        isApproved: true
+                    });
+
+                    publications.push({
+                        name: publisher.name,
+                        arts: count
+                    });
+                }
+
+                res.send(publications);
+            } catch (err) {
+                console.error('❌ Error fetching publication stats:', err);
+                res.status(500).send({ message: 'Internal Server Error' });
+            }
+        });
+
+        // GET /publisher
+        app.get('/publisher', async (req, res) => {
+            try {
+                const allPublishers = await publishersCollection.find().toArray();
+                const totalCount = allPublishers.length;
+
+                const recentPublishers = await publishersCollection
+                    .find()
+                    .sort({ postedDate: -1 })
+                    .limit(3)
+                    .toArray();
+
+                res.send({
+                    count: totalCount,
+                    recent: recentPublishers,
+                    all: allPublishers
+                });
+            } catch (error) {
+                console.error('Error getting publishers:', error);
+                res.status(500).send({ message: 'Server error' });
+            }
+        });
+
+        // POST /publisher
+        app.post('/publisher', async (req, res) => {
+            const publisher = req.body;
+            try {
+                const result = await publishersCollection.insertOne(publisher);
+                res.status(201).json(result);
+            } catch (err) {
+                res.status(500).json({ message: 'Error saving publisher', error: err });
+            }
+        });
+
+        // PAYMENT RELATED APIS
         // POST /create-payment-intent
         app.post('/create-payment-intent', verifyFbToken, async (req, res) => {
             const { cost } = req.body;
