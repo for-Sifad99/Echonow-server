@@ -17,6 +17,7 @@ const port = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
+// CUSTOM MIDDLEWARE ----------------
 // Verify Admin
 admin.initializeApp({
     credential: admin.credential.cert(serviceAccount)
@@ -36,9 +37,10 @@ const verifyFbToken = async (req, res, next) => {
         req.decoded = decoded;
         next();
     } catch (error) {
-        return res.status(401).send({ message: 'Unauthorized access!!' })
+        return res.status(401).send({ message: 'Unauthorized access!!' });
     };
 };
+
 
 // Home route:
 app.get('/', (req, res) => {
@@ -67,10 +69,21 @@ async function run() {
         const usersCollection = client.db('articlesDB').collection('users');
         const publishersCollection = client.db('articlesDB').collection('publishers');
 
+        // CUSTOM MIDDLEWARE ----------------
+        // Verify Admin
+        const verifyAdmin = async (req, res, next) => {
+            const email = req?.decoded?.email;
+            const user = await usersCollection.findOne({ email });
+
+            if (!user || user.role !== 'admin') {
+                return res.status(403).send({ message: 'Unauthorized access!!' })
+            }
+            next();
+        };
 
         // USERS RELATED APIS
         // POST /users
-        app.post("/users", async (req, res) => {
+        app.post("/users", verifyFbToken, async (req, res) => {
             try {
                 const userProfile = req.body;
                 const { name, photo, email, premiumTaken, duration } = userProfile;
@@ -150,8 +163,8 @@ async function run() {
             }
         });
 
-        // GET /all-users
-        app.get('/all-users', async (req, res) => {
+        // GET /all-users ***
+        app.get('/all-users', verifyFbToken, verifyAdmin, async (req, res) => {
             try {
                 const totalUsers = await usersCollection.countDocuments();
                 const premiumUsers = await usersCollection.countDocuments({ isPremium: true });
@@ -164,12 +177,12 @@ async function run() {
                 });
             } catch (error) {
                 console.error("Error getting all users:", error);
-                res.status(500).send({ message: "Failed to fetch all users" });
+                // res.send({ message: "Failed to fetch all users" });
             }
         });
 
         // PATCH /users/:email
-        app.patch("/users/:email", async (req, res) => {
+        app.patch("/users/:email", verifyFbToken, async (req, res) => {
             const email = req.params.email;
             const updatedFields = req.body;
 
@@ -181,8 +194,8 @@ async function run() {
             res.status(200).json(result);
         });
 
-        // PATCH /users/admin:email
-        app.patch('/users/admin/:email', async (req, res) => {
+        // PATCH /users/admin:email ***
+        app.patch('/users/admin/:email', verifyFbToken, verifyAdmin, async (req, res) => {
             const email = req.params.email;
             const filter = { email };
             const updateDoc = { $set: { role: 'admin' } };
@@ -190,21 +203,19 @@ async function run() {
             res.send(result);
         });
 
-        // DELETE /users/:email
-        app.delete("/users/:email", async (req, res) => {
-            const email = req.params.email;
+        // POST /get-role
+        app.post('/get-role', verifyFbToken, async (req, res) => {
+            const { email } = req.body;
+            if (!email) {
+                return res.status(400).json({ error: 'Email is required' });
+            }
 
-            try {
-                const result = await usersCollection.deleteOne({ email: email });
+            const user = await usersCollection.findOne({ email });
 
-                if (result.deletedCount === 0) {
-                    return res.status(404).json({ message: "User not found" });
-                }
-
-                res.json({ message: "User deleted successfully" });
-            } catch (error) {
-                console.error("Delete user error:", error);
-                res.status(500).json({ message: "Server error" });
+            if (user) {
+                res.json({ role: user.role || 'user' });
+            } else {
+                res.status(404).json({ error: 'User not found' });
             }
         });
 
@@ -311,8 +322,8 @@ async function run() {
             }
         });
 
-        // GET /all-articles
-        app.get('/all-articles', async (req, res) => {
+        // GET /all-articles ***
+        app.get('/all-articles', verifyFbToken, verifyAdmin, async (req, res) => {
             try {
                 const total = await articlesCollection.countDocuments({ status: 'approved' });
 
@@ -380,7 +391,7 @@ async function run() {
                         status: 'approved', type
                             : 'tending'
                     })
-                    .sort({ postedDate: -1 }) // Sort by latest
+                    .sort({ postedDate: -1 })
                     .limit(4)
                     .toArray();
 
@@ -390,8 +401,8 @@ async function run() {
             }
         });
 
-        // PATCH /article
-        app.patch('/articles/:id', verifyFbToken, async (req, res) => {
+        // PATCH /article ***
+        app.patch('/articles/:id', verifyFbToken, verifyAdmin, async (req, res) => {
             const { id } = req.params;
             const updatedArticle = req.body;
 
@@ -407,8 +418,8 @@ async function run() {
             }
         });
 
-        // DELETE /article
-        app.delete('/articles/:id', verifyFbToken, async (req, res) => {
+        // DELETE /article ***
+        app.delete('/articles/:id', verifyFbToken, verifyAdmin, async (req, res) => {
             const { id } = req.params;
 
             try {
@@ -421,8 +432,8 @@ async function run() {
         });
 
         // PUBLISHERS RELATED APIS
-        // GET /publisher-stats
-        app.get('/publication-stats', async (req, res) => {
+        // GET /publishers-stats
+        app.get('/publishers-stats', async (req, res) => {
             try {
                 const publishers = await publishersCollection.find().toArray();
 
@@ -447,8 +458,8 @@ async function run() {
             }
         });
 
-        // GET /publisher
-        app.get('/publisher', async (req, res) => {
+        // GET /publisher ***
+        app.get('/publisher', verifyFbToken, verifyAdmin, async (req, res) => {
             try {
                 const allPublishers = await publishersCollection.find().toArray();
                 const totalCount = allPublishers.length;
@@ -470,8 +481,8 @@ async function run() {
             }
         });
 
-        // POST /publisher
-        app.post('/publisher', async (req, res) => {
+        // POST /publisher ***
+        app.post('/publisher', verifyFbToken, verifyAdmin, async (req, res) => {
             const publisher = req.body;
             try {
                 const result = await publishersCollection.insertOne(publisher);
