@@ -36,11 +36,11 @@ const verifyFbToken = async (req, res, next) => {
         const decoded = await admin.auth().verifyIdToken(token);
         req.decoded = decoded;
         next();
+        
     } catch (error) {
         return res.status(401).send({ message: 'Unauthorized access!!' });
     };
 };
-
 
 // Home route:
 app.get('/', (req, res) => {
@@ -91,7 +91,6 @@ async function run() {
                 if (!email) return res.status(400).json({ message: "Email is required" });
 
                 const existingUser = await usersCollection.findOne({ email });
-
                 if (existingUser) {
                     // Check if premium expired
                     const now = new Date();
@@ -204,7 +203,7 @@ async function run() {
         });
 
         // POST /get-role
-        app.post('/get-role', verifyFbToken, async (req, res) => {
+        app.post('/get-role', async (req, res) => {
             const { email } = req.body;
             if (!email) {
                 return res.status(400).json({ error: 'Email is required' });
@@ -383,21 +382,63 @@ async function run() {
             }
         });
 
-        // GET /articles/tending
-        app.get('/articles/trending', async (req, res) => {
+        // GET /articles/special
+        app.get('/articles/special', async (req, res) => {
             try {
-                const trendingArticles = await articlesCollection
-                    .find({
-                        status: 'approved', type
-                            : 'tending'
-                    })
+                const hotArticlesPromise = articlesCollection
+                    .find({ status: 'approved', type: 'hot' })
                     .sort({ postedDate: -1 })
                     .limit(4)
                     .toArray();
 
-                res.send(trendingArticles);
+                const trendingArticlesPromise = articlesCollection
+                    .find({ status: 'approved' })
+                    .sort({ viewCount: -1 }) 
+                    .limit(6)
+                    .toArray();
+
+                const celebrityArticlesPromise = articlesCollection
+                    .find({ status: 'approved', tags: { $in: ['celebrity'] } })
+                    .sort({ postedDate: -1 })
+                    .limit(4)
+                    .toArray();
+
+                const fashionArticlesPromise = articlesCollection
+                    .find({ status: 'approved', tags: { $in: ['fashion'] } })
+                    .sort({ postedDate: -1 })
+                    .limit(8)
+                    .toArray();
+
+                const [hotArticles, trendingArticles, celebrityArticles, fashionArticles] = await Promise.all([
+                    hotArticlesPromise,
+                    trendingArticlesPromise,
+                    celebrityArticlesPromise,
+                    fashionArticlesPromise
+                ]);
+
+                res.send({
+                    hot: hotArticles,
+                    trending: trendingArticles,
+                    celebrity: celebrityArticles,
+                    fashion: fashionArticles,
+                });
             } catch (error) {
-                res.status(500).send({ message: 'Failed to fetch trending articles', error });
+                res.status(500).send({ message: 'Failed to fetch special articles', error });
+            }
+        });
+
+        // GET /articles/top-fashion
+        app.get('/articles/top-fashion', async (req, res) => {
+            try {
+                const topFashion = await articlesCollection
+                    .find({ status: 'approved', tags: { $in: ['fashion'] } })
+                    .sort({ viewCount: -1 }) 
+                    .limit(4)
+                    .toArray();
+
+                res.send(topFashion);
+            } catch (error) {
+                res.status(500).send({ message: 'Failed to fetch top fashion articles', error });
             }
         });
 
@@ -491,6 +532,8 @@ async function run() {
                 res.status(500).json({ message: 'Error saving publisher', error: err });
             }
         });
+
+
 
         // PAYMENT RELATED APIS
         // POST /create-payment-intent
