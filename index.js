@@ -533,7 +533,29 @@ async function run() {
             }
         });
 
+        // GET /publisher-with-articles ***
+        app.get('/publisher-with-articles', async (req, res) => {
+            try {
+                const allPublishers = await publishersCollection.find().toArray();
 
+                const matchedArticles = [];
+
+                for (const publisher of allPublishers) {
+                    const matchedArticle = await articlesCollection.findOne({ publisher: publisher.name });
+                    if (matchedArticle) {
+                        matchedArticles.push(matchedArticle);
+                    }
+                }
+
+                res.send({
+                    publishers: allPublishers,
+                    matchedArticles: matchedArticles
+                });
+            } catch (error) {
+                console.error('Error in /publisher-with-articles:', error);
+                res.status(500).send({ message: 'Server error' });
+            }
+        });
 
         // PAYMENT RELATED APIS
         // POST /create-payment-intent
