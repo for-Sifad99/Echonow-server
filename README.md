@@ -6,8 +6,9 @@ Welcome to the **EchoNow Backend** — the server-side of a powerful full-stack 
 
 ## 🔐 Admin Credentials
 
-- **Email:** admin@echonow.com
-- **Password:** Admin@123
+- **Email:** sifayed99@gmail.com
+- **Password:** @Admin1234  
+ 
 
 > These credentials are for demonstration and testing purposes only.
 
@@ -30,7 +31,7 @@ Welcome to the **EchoNow Backend** — the server-side of a powerful full-stack 
 - **Firebase for Authentication**
 - **dotenv for environment variables**
 - **CORS Middleware**
-- **Cloudinary / ImgBB (image uploads)**
+- **ImgBB (image uploads)**
 - **TanStack Query (used on client for GET operations)**
 
 ---
@@ -103,17 +104,7 @@ Follow these steps to set up and run the EchoNow backend server locally:
 - MongoDB Atlas account (or local MongoDB setup)
 - ImgBB or Cloudinary account (for image uploads)
 
-### 📁 Environment Variables
-
-Create a `.env` file in the root directory and add the following keys:
-
-```env
-PORT=5000
-MONGODB_URI=your_mongodb_connection_string
-ACCESS_TOKEN_SECRET=your_jwt_secret_key
-CLOUDINARY_NAME=your_cloudinary_cloud_name
-CLOUDINARY_API_KEY=your_cloudinary_api_key
-CLOUDINARY_SECRET=your_cloudinary_secret
+---
 
 1. Clone the repository
 git clone https://github.com/Programming-Hero-Web-Course4/b11a12-server-side-for-Sifad99.git
