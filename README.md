@@ -1,24 +1,9 @@
 # 📰 EchoNow - Backend Server
-
 Welcome to the **EchoNow Backend** — the server-side of a powerful full-stack news platform designed to revolutionize how users consume news. EchoNow delivers trending articles, subscription-based premium content, and a seamless user experience through RESTful APIs.
 
 ---
-
-## 🔐 Admin Credentials
-
-- **Email:** admin@echonow.com
-- **Password:** Admin@123
-
-> These credentials are for demonstration and testing purposes only.
-
----
-
-## 🔗 Project Links
-
-- 🌐 **Frontend Live Site:** [https://echonow-client.web.app](https://echonow-client.web.app)
-- 🌐 **Backend Live Site:** [https://echonow-server.vercel.app/](https://echonow-server.vercel.app/)
-- 💻 **Client GitHub Repository:** [https://github.com/Programming-Hero-Web-Course4/b11a12-client-side-for-Sifad99.git](https://github.com/Programming-Hero-Web-Course4/b11a12-client-side-for-Sifad99.git)
-- ⚙️ **Server GitHub Repository:** [https://github.com/Programming-Hero-Web-Course4/b11a12-server-side-for-Sifad99.git](https://github.com/Programming-Hero-Web-Course4/b11a12-server-side-for-Sifad99.git)
+  
+- **Live Site:** [Live Demo!](https://echonow-server.vercel.app/)  
 
 ---
 
@@ -30,66 +15,99 @@ Welcome to the **EchoNow Backend** — the server-side of a powerful full-stack 
 - **Firebase for Authentication**
 - **dotenv for environment variables**
 - **CORS Middleware**
-- **Cloudinary / ImgBB (image uploads)**
+- **ImgBB (image uploads)**
 - **TanStack Query (used on client for GET operations)**
 
 ---
 
 ## ✅ Key Features (Server-Side)
 
-1. **User Authentication & Authorization** using JWT and Firebase.
-2. **Role-Based Access Control** – supports Normal Users, Premium Users, and Admins.
-3. **JWT Protected Routes** to secure article posting, profile, subscription, and admin access.
-4. **Dynamic Article Filtering** via publisher, tag, and search query.
-5. **Article Approval Workflow** – only admin-approved articles become public.
-6. **Premium Article Restriction** – only subscribed users can view premium content.
-7. **Post Limiting for Normal Users** – only one article allowed unless subscribed.
-8. **Auto Subscription Expiry** based on selected time (1 min, 5 days, 10 days).
-9. **View Count Tracking** for trending article calculation.
-10. **Admin Panel API** with publisher management, pie charts, user stats, and moderation tools.
-11. **Pagination Support** for All Users and All Articles (admin dashboard).
-12. **CRUD Operations with Toast Notification Support** (handled on client side).
+- **User Authentication & Authorization** using JWT and Firebase.
+- **Role-Based Access Control** – supports Normal Users, Premium Users, and Admins.
+- **JWT Protected Routes** to secure article posting, profile, subscription, and admin access.
+- **Dynamic Article Filtering** via publisher, tag, and search query.
+- **Article Approval Workflow** – only admin-approved articles become public.
+- **Premium Article Restriction** – only subscribed users can view premium content.
+- **Post Limiting for Normal Users** – only one article allowed unless subscribed.
+- **Auto Subscription Expiry** based on selected time (1 min, 5 days, 10 days).
+- **View Count Tracking** for trending article calculation.
+- **Admin Panel API** with publisher management, pie charts, user stats, and moderation tools.
+- **Pagination Support** for All Users and All Articles (admin dashboard).
 
 ---
 
 🔄 API Endpoints Overview
 Only highlights — for full API details refer to the codebase
 
-### Auth Routes
-POST /register
-POST /login
-POST /jwt
-GET /user/:email – get user role/status
+## 🔑 Auth & User APIs
 
-### Articles
-POST /articles – Add new article (with subscription limit check)
-GET /articles – Get all approved articles with filters & pagination
-GET /articles/premium – Premium-only articles
-GET /articles/:id – Get article details
-PUT /articles/views/:id – Increment view count
-PUT /articles/:id – Update article
-DELETE /articles/:id
+| Method | Endpoint                   | Auth            | Role  | Description                                  |
+|--------|---------------------------|-----------------|-------|----------------------------------------------|
+| POST   | `/users`                   | ✅ Firebase Token | Any   | Create/update user profile & premium info    |
+| GET    | `/users/:email`            | ❌              | Any   | Get user by email                            |
+| GET    | `/all-users`               | ✅ Firebase Token | Admin | Get all users (with premium count)           |
+| GET    | `/users-count-info`        | ❌              | Any   | Get counts of total, premium & normal users  |
+| PATCH  | `/users/:email`            | ✅ Firebase Token | Any   | Update user fields                          |
+| PATCH  | `/users/admin/:email`      | ✅ Firebase Token | Admin | Make a user admin                           |
+| POST   | `/get-role`                | ❌              | Any   | Get role by email                           |
 
-### Admin
-GET /admin/users – All users
-PATCH /admin/make-admin/:id
-GET /admin/articles – All articles
-PATCH /admin/approve/:id
-PATCH /admin/decline/:id
-PATCH /admin/make-premium/:id
-DELETE /admin/article/:id
+---
 
-### Publishers
-POST /publishers – Add new publisher
-GET /publishers – All publishers
+## 📝 Article APIs
 
-## 🔍 Additional Notes
-All GET requests are fetched using TanStack Query on the client.
-All private routes use firebase token verification.
-Uses react-google-charts (on client) to show visual analytics.
-All image uploads are handled using Cloudinary/ImgBB.
-Proper loaders and SweetAlerts/Toasts are integrated for all async operations.
-Fully supports responsive design, including dashboard.
+| Method | Endpoint                             | Auth            | Role             | Description                                       |
+|--------|--------------------------------------|-----------------|------------------|---------------------------------------------------|
+| POST   | `/article`                           | ✅ Firebase Token | Any (limited)    | Create new article (normal users limited)         |
+| GET    | `/articles`                          | ❌              | Any              | Get approved articles (search, filter, pagination)|
+| GET    | `/articles/user?email=`              | ❌              | Any              | Get all articles by user email                   |
+| GET    | `/articles/premium`                  | ✅ Firebase Token | Any (Premium)    | Get premium articles (pagination)                |
+| GET    | `/all-articles`                      | ✅ Firebase Token | Admin            | Get all articles (sorted by status)              |
+| GET    | `/article/:id`                       | ✅ Firebase Token | Any              | Get single article by ID                         |
+| PATCH  | `/article/:id/views`                 | ✅ Firebase Token | Any              | Increment view count                             |
+| GET    | `/articles/special`                  | ❌              | Any              | Get hot, trending, celebrity & fashion articles  |
+| GET    | `/articles/top-fashion`              | ❌              | Any              | Get top 4 fashion articles                       |
+| PATCH  | `/articles/:id`                      | ✅ Firebase Token | Admin            | Update article                                   |
+| DELETE | `/articles/:id`                      | ✅ Firebase Token | Admin            | Delete article                                   |
+
+---
+
+## 📰 Publisher APIs
+
+| Method | Endpoint                     | Auth            | Role  | Description                                         |
+|--------|-----------------------------|-----------------|-------|-----------------------------------------------------|
+| GET    | `/publishers-stats`          | ❌              | Any   | Get publisher names with approved article counts    |
+| GET    | `/publisher`                 | ✅ Firebase Token | Admin | Get all publishers with count & recent             |
+| POST   | `/publisher`                 | ✅ Firebase Token | Admin | Add new publisher                                   |
+| GET    | `/publisher-with-articles`   | ❌              | Any   | Get all publishers with one matched article         |
+
+---
+
+## 💳 Payment API
+
+| Method | Endpoint                  | Auth            | Role  | Description                                        |
+|--------|--------------------------|-----------------|-------|----------------------------------------------------|
+| POST   | `/create-payment-intent`  | ✅ Firebase Token | Any   | Create Stripe payment intent for subscription      |
+
+---
+
+## ⚙️ Environment Variables
+
+You need to setup `.env`  .env file:
+
+```env
+# Server Port
+PORT=YOUR_PORT
+
+# Database Credentials
+DB_USER=YOUR_DB_USER
+DB_PASS=YOUR_DB_PASSWORD
+
+# Payment Gateway (Stripe) Secret Key
+PAYMENT_GETWAY_KEY=YOUR_STRIPE_SECRET_KEY
+
+# Firebase Service Key (JSON or base64)
+FB_SERVICE_KEY=YOUR_FIREBASE_SERVICE_KEY
+```
 
 ---
 
@@ -99,29 +117,32 @@ Follow these steps to set up and run the EchoNow backend server locally:
 
 ### 📦 Prerequisites
 
-- Node.js (v14 or later)
+- Node.js
 - MongoDB Atlas account (or local MongoDB setup)
 - ImgBB or Cloudinary account (for image uploads)
 
-### 📁 Environment Variables
+---
 
-Create a `.env` file in the root directory and add the following keys:
+## 🛠 Installation & Setup
 
-```env
-PORT=5000
-MONGODB_URI=your_mongodb_connection_string
-ACCESS_TOKEN_SECRET=your_jwt_secret_key
-CLOUDINARY_NAME=your_cloudinary_cloud_name
-CLOUDINARY_API_KEY=your_cloudinary_api_key
-CLOUDINARY_SECRET=your_cloudinary_secret
+1. Clone the server repo
+   - git clone https://github.com/for-Sifad99/Echonow-server.git
 
-1. Clone the repository
-git clone https://github.com/Programming-Hero-Web-Course4/b11a12-server-side-for-Sifad99.git
-cd echonow-server
+2. Navigate to the project directory
+   - cd echonow-server
 
-2. Install dependencies
-npm install 
+3. Install dependencies
+   - npm install
 
-3. Start the server
-npm run dev
+4. Start the development server
+   - npm run dev
 
+---
+
+## 🔮 Future Updates
+
+This backend is just the beginning.  
+In the future, the project will be refactored into a full MVC (Model–View–Controller) pattern, with all modules properly structured.  
+More secure and fully functional APIs will be added to improve performance, reliability, and scalability.
+
+Stay tuned for upcoming updates!
