@@ -27,12 +27,14 @@ const startServer = async () => {
         const articleRouter = require('./routes/articleRoutes');
         const publisherRouter = require('./routes/publisherRoutes');
         const paymentRouter = require('./routes/paymentRoutes');
+        const emailVerificationRouter = require('./routes/emailVerificationRoutes');
 
         // Register routes
         app.use('/', userRouter(dbCollections));
         app.use('/', articleRouter(dbCollections));
         app.use('/', publisherRouter(dbCollections));
         app.use('/', paymentRouter());
+        app.use('/', emailVerificationRouter(dbCollections));
 
         // Start server
         app.listen(port, () => {

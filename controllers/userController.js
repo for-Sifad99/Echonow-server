@@ -108,6 +108,8 @@ const createUser = (dbCollections) => {
                 ...userProfile,
                 name, email, photo,
                 isPremium: false,
+                isEmailVerified: userProfile.isEmailVerified || false,
+                emailVerifiedAt: userProfile.emailVerifiedAt || null,
                 premiumTaken: null,
                 premiumExpiresAt: null,
                 createdAt: new Date(),
