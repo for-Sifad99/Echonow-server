@@ -1,4 +1,5 @@
 const { ObjectId } = require('mongodb');
+const admin = require('../config/firebase');
 
 // ARTICLES RELATED CONTROLLERS
 const createArticle = (dbCollections) => {
@@ -139,6 +140,23 @@ const getArticleById = (dbCollections) => {
 
             if (!article) {
                 return res.status(404).send({ message: "Article not found" });
+            }
+
+            // If it's a premium article, verify the user has access
+            if (article.isPremium) {
+                const authHeader = req.headers?.authorization;
+                const token = authHeader?.split(' ')[1];
+                
+                if (!authHeader || !authHeader.startsWith('Bearer ') || !token) {
+                    return res.status(401).send({ message: "Unauthorized access to premium article" });
+                }
+                
+                try {
+                    // Verify the token
+                    await admin.auth().verifyIdToken(token);
+                } catch (error) {
+                    return res.status(401).send({ message: "Invalid token for premium article" });
+                }
             }
 
             res.send(article);

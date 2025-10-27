@@ -36,7 +36,7 @@ const articleRouter = (dbCollections) => {
     router.get('/all-articles', verifyFbToken, verifyAdmin(dbCollections), getAllArticlesAdmin(dbCollections));
 
     // GET /articles/:id
-    router.get('/article/:id', verifyFbToken, getArticleById(dbCollections));
+    router.get('/article/:id', getArticleById(dbCollections));
 
     // GET /article/:id/views
     router.patch('/article/:id/views', verifyFbToken, updateArticleViews(dbCollections));
