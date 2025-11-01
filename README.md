@@ -9,14 +9,14 @@ Welcome to the **EchoNow Backend** — the server-side of a powerful full-stack 
 
 ## 🚀 Technologies Used
 
-- **Node.js**
-- **Express.js**
+- **Node.js v18+**
+- **Express.js v5**
 - **MongoDB + Mongoose**
-- **Firebase for Authentication**
-- **dotenv for environment variables**
+- **Firebase Admin SDK** for Authentication
+- **Stripe** for payment processing
+- **dotenv** for environment variables
 - **CORS Middleware**
-- **ImgBB (image uploads)**
-- **TanStack Query (used on client for GET operations)**
+- **Nodemailer** for email verification
 
 ---
 
@@ -33,13 +33,13 @@ Welcome to the **EchoNow Backend** — the server-side of a powerful full-stack 
 - **View Count Tracking** for trending article calculation.
 - **Admin Panel API** with publisher management, pie charts, user stats, and moderation tools.
 - **Pagination Support** for All Users and All Articles (admin dashboard).
+- **Email Verification** system for new users
 
 ---
 
-🔄 API Endpoints Overview
-Only highlights — for full API details refer to the codebase
+## 🔄 API Endpoints Overview
 
-## 🔑 Auth & User APIs
+### 🔑 Auth & User APIs
 
 | Method | Endpoint                   | Auth            | Role  | Description                                  |
 |--------|---------------------------|-----------------|-------|----------------------------------------------|
@@ -51,9 +51,7 @@ Only highlights — for full API details refer to the codebase
 | PATCH  | `/users/admin/:email`      | ✅ Firebase Token | Admin | Make a user admin                           |
 | POST   | `/get-role`                | ❌              | Any   | Get role by email                           |
 
----
-
-## 📝 Article APIs
+### 📝 Article APIs
 
 | Method | Endpoint                             | Auth            | Role             | Description                                       |
 |--------|--------------------------------------|-----------------|------------------|---------------------------------------------------|
@@ -64,14 +62,13 @@ Only highlights — for full API details refer to the codebase
 | GET    | `/all-articles`                      | ✅ Firebase Token | Admin            | Get all articles (sorted by status)              |
 | GET    | `/article/:id`                       | ✅ Firebase Token | Any              | Get single article by ID                         |
 | PATCH  | `/article/:id/views`                 | ✅ Firebase Token | Any              | Increment view count                             |
+| GET    | `/articles/banner-trending`          | ❌              | Any              | Get hot, trending articles for banner carousel   |
 | GET    | `/articles/special`                  | ❌              | Any              | Get hot, trending, celebrity & fashion articles  |
 | GET    | `/articles/top-fashion`              | ❌              | Any              | Get top 4 fashion articles                       |
 | PATCH  | `/articles/:id`                      | ✅ Firebase Token | Admin            | Update article                                   |
 | DELETE | `/articles/:id`                      | ✅ Firebase Token | Admin            | Delete article                                   |
 
----
-
-## 📰 Publisher APIs
+### 📰 Publisher APIs
 
 | Method | Endpoint                     | Auth            | Role  | Description                                         |
 |--------|-----------------------------|-----------------|-------|-----------------------------------------------------|
@@ -80,23 +77,28 @@ Only highlights — for full API details refer to the codebase
 | POST   | `/publisher`                 | ✅ Firebase Token | Admin | Add new publisher                                   |
 | GET    | `/publisher-with-articles`   | ❌              | Any   | Get all publishers with one matched article         |
 
----
-
-## 💳 Payment API
+### 💳 Payment API
 
 | Method | Endpoint                  | Auth            | Role  | Description                                        |
 |--------|--------------------------|-----------------|-------|----------------------------------------------------|
 | POST   | `/create-payment-intent`  | ✅ Firebase Token | Any   | Create Stripe payment intent for subscription      |
 
+### 📧 Email Verification API
+
+| Method | Endpoint                  | Auth            | Role  | Description                                        |
+|--------|--------------------------|-----------------|-------|----------------------------------------------------|
+| POST   | `/send-verification-email` | ✅ Firebase Token | Any   | Send verification email to user                    |
+| POST   | `/verify-email`            | ✅ Firebase Token | Any   | Verify user's email address                        |
+
 ---
 
 ## ⚙️ Environment Variables
 
-You need to setup `.env`  .env file:
+You need to setup `.env` file:
 
 ```env
 # Server Port
-PORT=YOUR_PORT
+PORT=5001
 
 # Database Credentials
 DB_USER=YOUR_DB_USER
@@ -105,8 +107,17 @@ DB_PASS=YOUR_DB_PASSWORD
 # Payment Gateway (Stripe) Secret Key
 PAYMENT_GETWAY_KEY=YOUR_STRIPE_SECRET_KEY
 
-# Firebase Service Key (JSON or base64)
-FB_SERVICE_KEY=YOUR_FIREBASE_SERVICE_KEY
+# Firebase Service Key (JSON)
+TYPE=service_account
+PROJECT_ID=YOUR_PROJECT_ID
+PRIVATE_KEY_ID=YOUR_PRIVATE_KEY_ID
+PRIVATE_KEY=YOUR_PRIVATE_KEY
+CLIENT_EMAIL=YOUR_CLIENT_EMAIL
+CLIENT_ID=YOUR_CLIENT_ID
+AUTH_URI=https://accounts.google.com/o/oauth2/auth
+TOKEN_URI=https://oauth2.googleapis.com/token
+AUTH_PROVIDER_X509_CERT_URL=https://www.googleapis.com/oauth2/v1/certs
+CLIENT_X509_CERT_URL=YOUR_CLIENT_X509_CERT_URL
 ```
 
 ---
@@ -117,25 +128,34 @@ Follow these steps to set up and run the EchoNow backend server locally:
 
 ### 📦 Prerequisites
 
-- Node.js
+- Node.js v18+
 - MongoDB Atlas account (or local MongoDB setup)
-- ImgBB or Cloudinary account (for image uploads)
 
 ---
 
 ## 🛠 Installation & Setup
 
 1. Clone the server repo
-   - git clone https://github.com/for-Sifad99/Echonow-server.git
+   ```bash
+   git clone https://github.com/for-Sifad99/Echonow-server.git
+   ```
 
 2. Navigate to the project directory
-   - cd echonow-server
+   ```bash
+   cd echonow-server
+   ```
 
 3. Install dependencies
-   - npm install
+   ```bash
+   npm install
+   ```
 
-4. Start the development server
-   - npm run dev
+4. Create a `.env` file in the root directory and add your environment variables
+
+5. Start the development server
+   ```bash
+   npm start
+   ```
 
 ---
 
