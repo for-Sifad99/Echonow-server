@@ -49,6 +49,16 @@ const getUserByEmail = (dbCollections) => {
                 return res.status(404).json({ message: "User not found" });
             }
 
+            // Ensure user has a role field
+            if (!user.role) {
+                // Update the user to have a default role
+                await dbCollections.usersCollection.updateOne(
+                    { email },
+                    { $set: { role: 'user' } }
+                );
+                user.role = 'user';
+            }
+
             res.status(200).json(user);
         } catch (error) {
             console.error("❌ Error fetching user:", error);
@@ -107,6 +117,7 @@ const createUser = (dbCollections) => {
             await dbCollections.usersCollection.insertOne({
                 ...userProfile,
                 name, email, photo,
+                role: 'user', // Explicitly set default role
                 isPremium: false,
                 isEmailVerified: userProfile.isEmailVerified || false,
                 emailVerifiedAt: userProfile.emailVerifiedAt || null,

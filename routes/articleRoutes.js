@@ -41,7 +41,7 @@ const articleRouter = (dbCollections) => {
     // GET /article/:id/views
     router.patch('/article/:id/views', verifyFbToken, updateArticleViews(dbCollections));
 
-    // GET /articles/tending
+    // GET /articles/trending
     router.get('/articles/trending', getTrendingArticles(dbCollections));
 
     // GET /articles/special (for SideArticle.jsx)
