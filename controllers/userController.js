@@ -156,6 +156,7 @@ const makeAdmin = (dbCollections) => {
 
 const getUserRole = (dbCollections) => {
     return async (req, res) => {
+        console.log('getUserRole called with body:', req.body);
         const { email } = req.body;
         if (!email) {
             return res.status(400).json({ error: 'Email is required' });
