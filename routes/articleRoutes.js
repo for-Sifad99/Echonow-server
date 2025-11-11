@@ -39,7 +39,7 @@ const articleRouter = (dbCollections) => {
     router.get('/article/:id', getArticleById(dbCollections));
 
     // GET /article/:id/views
-    router.patch('/article/:id/views', verifyFbToken, updateArticleViews(dbCollections));
+    router.patch('/article/:id/views', updateArticleViews(dbCollections));
 
     // GET /articles/trending
     router.get('/articles/trending', getTrendingArticles(dbCollections));

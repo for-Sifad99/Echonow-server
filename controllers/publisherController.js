@@ -9,7 +9,7 @@ const getPublishersStats = (dbCollections) => {
             for (const publisher of publishers) {
                 const count = await dbCollections.articlesCollection.countDocuments({
                     publisher: publisher.name,
-                    isApproved: true
+                    status: 'approved'
                 });
 
                 publications.push({

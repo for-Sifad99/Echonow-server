@@ -3,7 +3,6 @@ const { verifyFbToken } = require('../middleware/auth');
 const { verifyAdmin } = require('../middleware/admin');
 const {
     getAllUsers,
-    getUsersCountInfo,
     getUserByEmail,
     createUser,
     updateUser,
@@ -22,9 +21,6 @@ const userRouter = (dbCollections) => {
 
     // GET /all-users ***
     router.get('/all-users', verifyFbToken, verifyAdmin(dbCollections), getAllUsers(dbCollections));
-
-    // GET /users-count-info (for InfoCards.jsx)
-    router.get('/users-count-info', getUsersCountInfo(dbCollections));
 
     // PATCH /users/:email
     router.patch("/users/:email", verifyFbToken, updateUser(dbCollections));

@@ -4,37 +4,32 @@ const { verifyAdmin } = require('../middleware/admin');
 const getAllUsers = (dbCollections) => {
     return async (req, res) => {
         try {
+            const page = parseInt(req.query.page) || 1;
+            const limit = parseInt(req.query.limit) || 10;
+            const skip = (page - 1) * limit;
+
             const totalUsers = await dbCollections.usersCollection.countDocuments();
             const premiumUsers = await dbCollections.usersCollection.countDocuments({ isPremium: true });
-            const allUsers = await dbCollections.usersCollection.find().toArray();
+            
+            // Fetch users with pagination
+            const allUsers = await dbCollections.usersCollection
+                .find()
+                .skip(skip)
+                .limit(limit)
+                .toArray();
 
             res.send({
                 totalUsers,
                 premiumUsers,
                 allUsers,
+                currentPage: page,
+                totalPages: Math.ceil(totalUsers / limit),
+                hasNextPage: page < Math.ceil(totalUsers / limit),
+                hasPrevPage: page > 1
             });
         } catch (error) {
             console.error("Error getting all users:", error);
             res.status(500).send({ message: "Failed to fetch all users" });
-        }
-    };
-};
-
-const getUsersCountInfo = (dbCollections) => {
-    return async (req, res) => {
-        try {
-            const totalUsers = await dbCollections.usersCollection.countDocuments();
-            const premiumUsers = await dbCollections.usersCollection.countDocuments({ isPremium: true });
-            const normalUsers = totalUsers - premiumUsers;
-
-            res.send({
-                totalUsers,
-                premiumUsers,
-                normalUsers
-            });
-        } catch (error) {
-            console.error("Error getting users count info:", error);
-            res.status(500).send({ message: "Failed to fetch users count info" });
         }
     };
 };
@@ -161,7 +156,6 @@ const makeAdmin = (dbCollections) => {
 
 const getUserRole = (dbCollections) => {
     return async (req, res) => {
-        console.log('getUserRole called with body:', req.body);
         const { email } = req.body;
         if (!email) {
             return res.status(400).json({ error: 'Email is required' });
@@ -179,7 +173,6 @@ const getUserRole = (dbCollections) => {
 
 module.exports = {
     getAllUsers,
-    getUsersCountInfo,
     getUserByEmail,
     createUser,
     updateUser,

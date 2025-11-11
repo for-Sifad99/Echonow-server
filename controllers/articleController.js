@@ -111,10 +111,18 @@ const getPremiumArticles = (dbCollections) => {
 const getAllArticlesAdmin = (dbCollections) => {
     return async (req, res) => {
         try {
-            const total = await dbCollections.articlesCollection.countDocuments({ status: 'approved' });
+            const page = parseInt(req.query.page) || 1;
+            const limit = parseInt(req.query.limit) || 10;
+            const skip = (page - 1) * limit;
 
-            // fetch all articles
-            const articles = await dbCollections.articlesCollection.find().toArray();
+            const total = await dbCollections.articlesCollection.countDocuments();
+            
+            // fetch articles with pagination
+            const articles = await dbCollections.articlesCollection
+                .find()
+                .skip(skip)
+                .limit(limit)
+                .toArray();
 
             // Custom sort by status
             const statusOrder = { pending: 1, approved: 2, declined: 3 };
@@ -123,7 +131,14 @@ const getAllArticlesAdmin = (dbCollections) => {
                 return statusOrder[a.status] - statusOrder[b.status];
             });
 
-            res.send({ total, allArticles: sortedArticles });
+            res.send({ 
+                total, 
+                allArticles: sortedArticles,
+                currentPage: page,
+                totalPages: Math.ceil(total / limit),
+                hasNextPage: page < Math.ceil(total / limit),
+                hasPrevPage: page > 1
+            });
         } catch (error) {
             console.error("Error:", error);
             res.status(500).send({ message: "Failed to fetch" });
